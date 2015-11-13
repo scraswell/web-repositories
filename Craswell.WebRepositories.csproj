@@ -58,15 +58,15 @@
     <Folder Include="Tangerine\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Craswell.WebScraping\Craswell.WebScraping.csproj">
+    <ProjectReference Include="..\web-scraping\Craswell.WebScraping.csproj">
       <Project>{EE92A653-52DF-432F-94F9-AD5AC917825E}</Project>
       <Name>Craswell.WebScraping</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Craswell.Encryption\Craswell.Encryption.csproj">
+    <ProjectReference Include="..\automation-encryption\Craswell.Encryption.csproj">
       <Project>{5FD7EF01-84F9-425B-95E9-41CF3CB258CB}</Project>
       <Name>Craswell.Encryption</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Craswell.Automation.DataAccess\Craswell.Automation.DataAccess.csproj">
+    <ProjectReference Include="..\automation-data-access\Craswell.Automation.DataAccess.csproj">
       <Project>{0E48F0AC-B3C1-4F0A-A89A-1EF444C9F47E}</Project>
       <Name>Craswell.Automation.DataAccess</Name>
     </ProjectReference>
