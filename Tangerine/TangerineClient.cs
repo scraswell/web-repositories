@@ -38,7 +38,9 @@ namespace Craswell.WebRepositories.Tangerine
             { "statementLinks", "[data-popupwin='true']" },
             { "statementSelect", ".dropdown-menu [data-value]" },
             { "refreshStatementList", "a[href*='refreshEStmtList()']" },
-            { "saveStatementLink", "[href*='FORMAT=PDF']" }
+            { "saveStatementLink", "[href*='FORMAT=PDF']" },
+            { "statementAccountDetails", "div.orange-key + div.eStatement-section .scrollable-table-inner tbody tr td:nth-child(2)" },
+            { "statementDateInformation", "div.account-details-header p:nth-child(1)" }
         };
 
         /// <summary>
@@ -173,6 +175,12 @@ namespace Craswell.WebRepositories.Tangerine
             this.client.ClickElement(
                 selectorMapping["statementLinks"]);
             this.client.FocusLastOpenedWindow();
+
+            string statementDateInfo = this.client
+                .GetElementText(selectorMapping["statementDateInformation"]);
+
+            string statementAccountInfo = this.client
+                .GetElementText(selectorMapping["statementAccountDetails"]);
 
             string downloadUrl = this.client.GetElementAttributeValue(
                 selectorMapping["saveStatementLink"],

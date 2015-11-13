@@ -37,6 +37,12 @@ namespace Craswell.WebRepositories.Tangerine
         /// </summary>
         /// <value>The transactions.</value>
         public IList<IAccountTransaction> Transactions { get; set; }
+
+        /// <summary>
+        /// Gets or sets the transactions.
+        /// </summary>
+        /// <value>The transactions.</value>
+        public IList<IAccountStatement> Statements { get; set; }
         #endregion
 
         /// <summary>
