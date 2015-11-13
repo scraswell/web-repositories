@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{5F8026C3-70D6-4100-9B6F-8DAC532ED1FF}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Craswell.WebRepositories</RootNamespace>
+    <AssemblyName>Craswell.WebRepositories</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="MySql.Data">
+      <HintPath>..\packages\MySql.Data.6.9.8\lib\net45\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="Iesi.Collections">
+      <HintPath>..\packages\Iesi.Collections.4.0.0.4000\lib\net40\Iesi.Collections.dll</HintPath>
+    </Reference>
+    <Reference Include="NHibernate">
+      <HintPath>..\packages\NHibernate.4.0.4.4000\lib\net40\NHibernate.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net">
+      <HintPath>..\packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tangerine\TangerineConfiguration.cs" />
+    <Compile Include="Tangerine\TangerineRepository.cs" />
+    <Compile Include="WebRepositoryFactory.cs" />
+    <Compile Include="Tangerine\TangerineClient.cs" />
+    <Compile Include="Tangerine\TangerineAccount.cs" />
+    <Compile Include="Tangerine\TangerineTransaction.cs" />
+    <Compile Include="Tangerine\TangerineObjectFactory.cs" />
+    <Compile Include="IConnectedWebRepository.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Folder Include="Tangerine\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Craswell.WebScraping\Craswell.WebScraping.csproj">
+      <Project>{EE92A653-52DF-432F-94F9-AD5AC917825E}</Project>
+      <Name>Craswell.WebScraping</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Craswell.Encryption\Craswell.Encryption.csproj">
+      <Project>{5FD7EF01-84F9-425B-95E9-41CF3CB258CB}</Project>
+      <Name>Craswell.Encryption</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Craswell.Automation.DataAccess\Craswell.Automation.DataAccess.csproj">
+      <Project>{0E48F0AC-B3C1-4F0A-A89A-1EF444C9F47E}</Project>
+      <Name>Craswell.Automation.DataAccess</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="App.config" />
+  </ItemGroup>
+</Project>
