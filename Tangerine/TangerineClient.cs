@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using Craswell.Automation.DataAccess;
@@ -40,8 +41,17 @@ namespace Craswell.WebRepositories.Tangerine
             { "refreshStatementList", "a[href*='refreshEStmtList()']" },
             { "saveStatementLink", "[href*='FORMAT=PDF']" },
             { "statementAccountDetails", "div.orange-key + div.eStatement-section .scrollable-table-inner tbody tr td:nth-child(2)" },
-            { "statementDateInformation", "div.account-details-header p:nth-child(1)" }
+            { "statementDateInformation", "div.account-details-header p:nth-child(1)" },
+            { "statementDropdown", "a[data-name='oldEstatmentList']" },
+            { "statementDateSelector", "li > a[data-value]" },
+            { "statementDate", "li > a[data-value='{0}']" },
+            { "selectDate" , "div.btn-group + a" }
         };
+
+        /// <summary>
+        /// The logger used by the tangerine client.
+        /// </summary>
+        private ILog logger;
 
         /// <summary>
         /// Indicates whether the client is logged in.
@@ -51,7 +61,7 @@ namespace Craswell.WebRepositories.Tangerine
         /// <summary>
         /// The client.
         /// </summary>
-        private HttpClient client;
+        private HttpClient httpClient;
 
         /// <summary>
         /// The client configuration.
@@ -66,14 +76,22 @@ namespace Craswell.WebRepositories.Tangerine
         /// <summary>
         /// Initializes a new instance of the <see cref="Craswell.WebRepositories.Tangerine.TangerineClient"/> class.
         /// </summary>
+        /// <param name="logger">The logger for the tangerine client.</param>
+        /// <param name="httpClient">The HTTP client used by the TangerineClient.</param>
         /// <param name="clientConfiguration">The client configuration.</param>
         /// <param name="objectFactory">The object factory.</param> 
         public TangerineClient(
-            HttpClient client,
+            ILog logger,
+            HttpClient httpClient,
             IWebRepositoryConfiguration clientConfiguration,
             TangerineObjectFactory objectFactory)
         {
-            if (client == null)
+            if (logger == null)
+            {
+                throw new ArgumentNullException("tangerineClientLogger");
+            }
+
+            if (httpClient == null)
             {
                 throw new ArgumentNullException("client");
             }
@@ -88,7 +106,8 @@ namespace Craswell.WebRepositories.Tangerine
                 throw new ArgumentNullException("objectFactory");
             }
 
-            this.client = client;
+            this.logger = logger;
+            this.httpClient = httpClient;
             this.clientConfiguration = clientConfiguration;
             this.objectFactory = objectFactory;
         }
@@ -132,63 +151,188 @@ namespace Craswell.WebRepositories.Tangerine
             var accountInfo = new List<string>();
 
             accountInfo.AddRange(
-                this.client.GetElementsText(selectorMapping["chequingAccounts"]));
+                this.httpClient.GetElementsText(selectorMapping["chequingAccounts"]));
 
             accountInfo.AddRange(
-                this.client.GetElementsText(selectorMapping["savingsAccounts"]));
+                this.httpClient.GetElementsText(selectorMapping["savingsAccounts"]));
+
+            this.LogList("list of accounts", accountInfo);
 
             tangerineAccounts.AddRange(this.objectFactory.BuildAccountList(accountInfo));
 
-            foreach (TangerineAccount account in tangerineAccounts)
-            {
-                this.ClickViewAccountsLink();
-                this.ClickViewAccountDetail(account);
+            ////foreach (TangerineAccount account in tangerineAccounts)
+            ////{
+            ////    this.ClickViewAccountsLink();
+            ////    this.ClickViewAccountDetail(account);
 
-                List<string> transactionInfo = new List<string>();
-                transactionInfo.AddRange(this.client
-                    .GetElementsText(selectorMapping["accountTransactionDetail"])
-                    .ToList<string>());
+            ////    List<string> transactionInfo = new List<string>();
+            ////    transactionInfo.AddRange(this.httpClient
+            ////        .GetElementsText(selectorMapping["accountTransactionDetail"])
+            ////        .ToList<string>());
 
-                IList<IAccountTransaction> transactions = this.objectFactory
-                    .BuildTransactionList(transactionInfo);
+            ////    this.LogList(string.Format(
+            ////        "list of transactions for account {0}",
+            ////        account.Number),
+            ////        transactionInfo);
 
-                account.Transactions = transactions;
-            }
+            ////    IList<IAccountTransaction> transactions = this.objectFactory
+            ////        .BuildTransactionList(transactionInfo);
+
+            ////    account.Transactions = transactions;
+            ////}
 
             return tangerineAccounts
                 .ToList<IAccount>();
         }
 
         /// <summary>
-        /// Gets a list of all bank accounts and recent transactions.
+        /// Gets all available statements.
         /// </summary>
-        public void GetStatement()
+        /// <returns>A list of statement details.</returns>
+        public IList<TangerineStatement> GetAllStatements()
         {
             if (!this.isLoggedIn)
             {
                 this.Login();
             }
 
+            List<TangerineStatement> statements = new List<TangerineStatement>();
+
             this.ClickViewAccountsLink();
+
             this.GoToStatements();
 
-            this.client.ClickElement(
-                selectorMapping["statementLinks"]);
-            this.client.FocusLastOpenedWindow();
+            IDictionary<DateTime, int> statementDateMapping = this.BuildStatementDateMapping();
 
-            string statementDateInfo = this.client
-                .GetElementText(selectorMapping["statementDateInformation"]);
+            foreach (DateTime key in statementDateMapping.Keys)
+            {
+                this.ClickStatementDateDropdown();
 
-            string statementAccountInfo = this.client
-                .GetElementText(selectorMapping["statementAccountDetails"]);
+                this.ChooseStatementDate(statementDateMapping[key]);
 
-            string downloadUrl = this.client.GetElementAttributeValue(
+                this.ClickView();
+
+                IList<string> statementLinks = this.httpClient
+                    .GetElementsAttributeValue(selectorMapping["statementLinks"], "href");
+
+                foreach (string link in statementLinks)
+                {
+                    this.httpClient.ClickElement(string.Format("a[href='{0}']", new Uri(link).PathAndQuery));
+
+                    this.httpClient.FocusLastOpenedWindow();
+
+                    string statementDateInfo = this.httpClient
+                        .GetElementText(selectorMapping["statementDateInformation"]);
+
+                    this.logger.DebugFormat("Statement Date Information: {0}", statementDateInfo);
+
+                    string statementAccountInfo = this.httpClient
+                        .GetElementText(selectorMapping["statementAccountDetails"]);
+
+                    this.logger.DebugFormat("Statement Account Information: {0}", statementAccountInfo);
+
+                    TangerineStatement statement = this.objectFactory
+                        .BuildStatement(statementDateInfo, statementAccountInfo);
+
+                    string downloadUrl = this.httpClient.GetElementAttributeValue(
+                        selectorMapping["saveStatementLink"],
+                        "href");
+
+                    string filePath = this.httpClient.DownloadFile(downloadUrl);
+
+                    ////string fileName = Path.GetFileName(filePath);
+                    string directoryName = Path.GetDirectoryName(filePath);
+
+                    File.Move(filePath, Path.Combine(directoryName, statement.FileName));
+
+                    this.httpClient.CloseActiveWindow();
+
+                    statements.Add(statement);
+                }
+            }
+
+            return statements;
+        }
+
+
+        /// <summary>
+        /// Gets a list of all bank accounts and recent transactions.
+        /// </summary>
+        public TangerineStatement GetStatement(IAccount account, int year, int month)
+        {
+            if (!this.isLoggedIn)
+            {
+                this.Login();
+            }
+
+            DateTime statementDate = new DateTime(year, month, 1);
+
+            TangerineStatement statement = null;
+
+            this.ClickViewAccountsLink();
+
+            this.GoToStatements();
+
+            IDictionary<DateTime, int> statementDateMapping = this.BuildStatementDateMapping();
+
+            this.ClickStatementDateDropdown();
+
+            this.ChooseStatementDate(statementDateMapping[statementDate]);
+
+            this.ClickView();
+
+            IList<string> statementLinks = this.httpClient
+                .GetElementsAttributeValue(selectorMapping["statementLinks"], "href");
+
+            foreach (string link in statementLinks)
+            {
+                this.httpClient.ClickElement(string.Format("a[href='{0}']", new Uri(link).PathAndQuery));
+
+                this.httpClient.FocusLastOpenedWindow();
+
+                string statementDateInfo = this.httpClient
+                    .GetElementText(selectorMapping["statementDateInformation"]);
+
+                this.logger.DebugFormat("Statement Date Information: {0}", statementDateInfo);
+
+                string statementAccountInfo = this.httpClient
+                    .GetElementText(selectorMapping["statementAccountDetails"]);
+
+                this.logger.DebugFormat("Statement Account Information: {0}", statementAccountInfo);
+
+                TangerineStatement thisStatement = this.objectFactory
+                    .BuildStatement(statementDateInfo, statementAccountInfo);
+
+                if (thisStatement.AccountNumber == account.Number)
+                {
+                    statement = thisStatement;
+                    break;
+                }
+                else
+                {
+                    this.httpClient.CloseActiveWindow();
+                }
+            }
+
+            if (statement == null)
+            {
+                return statement;
+            }
+
+            string downloadUrl = this.httpClient.GetElementAttributeValue(
                 selectorMapping["saveStatementLink"],
                 "href");
 
-            this.client.DownloadFile(downloadUrl);
+            string filePath = this.httpClient.DownloadFile(downloadUrl);
 
-            this.client.CloseActiveWindow();
+            ////string fileName = Path.GetFileName(filePath);
+            string directoryName = Path.GetDirectoryName(filePath);
+
+            File.Move(filePath, Path.Combine(directoryName, statement.FileName));
+
+            this.httpClient.CloseActiveWindow();
+
+            return statement;
         }
 
         /// <summary>
@@ -201,10 +345,10 @@ namespace Craswell.WebRepositories.Tangerine
             {
                 this.Logout();
 
-                if (this.client != null)
+                if (this.httpClient != null)
                 {
-                    this.client.Dispose();
-                    this.client = null;
+                    this.httpClient.Dispose();
+                    this.httpClient = null;
                 }
             }
         }
@@ -227,11 +371,11 @@ namespace Craswell.WebRepositories.Tangerine
         /// </summary>
         private void ClickLoginLink()
         {
-            this.client.OpenUrl(
+            this.httpClient.OpenUrl(
                 this.clientConfiguration.Address.ToString(),
                 selectorMapping["loginLink"]);
 
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["loginLink"],
                 selectorMapping["clientNumberInput"]);
         }
@@ -241,11 +385,11 @@ namespace Craswell.WebRepositories.Tangerine
         /// </summary>
         private void EnterClientNumber()
         {
-            this.client.EnterInput(
+            this.httpClient.EnterInput(
                 selectorMapping["clientNumberInput"],
                 this.clientConfiguration.Username);
 
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["clientNumberGoButton"],
                 selectorMapping["challengeInput"]);
         }
@@ -255,14 +399,14 @@ namespace Craswell.WebRepositories.Tangerine
         /// </summary>
         private void CompleteChallenge()
         {
-            string challengeQuestion = this.client
+            string challengeQuestion = this.httpClient
                 .GetElementText(selectorMapping["challengeQuestion"]);
 
-            this.client.EnterInput(
+            this.httpClient.EnterInput(
                 selectorMapping["challengeInput"],
                 this.clientConfiguration.SecurityQuestions[challengeQuestion]);
 
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["challengeNextButton"],
                 selectorMapping["pinInput"]);
         }
@@ -272,11 +416,11 @@ namespace Craswell.WebRepositories.Tangerine
         /// </summary>
         private void EnterPin()
         {
-            this.client.EnterInput(
+            this.httpClient.EnterInput(
                 selectorMapping["pinInput"],
                 this.clientConfiguration.Password);
 
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["pinGoButton"],
                 selectorMapping["logoutLink"]);
         }
@@ -293,9 +437,37 @@ namespace Craswell.WebRepositories.Tangerine
 //                href,
 //                selectorMapping["viewAccountSummaryLink"]);
 
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["viewAccountsLink"],
                 selectorMapping["viewAccountSummaryLink"]);
+        }
+
+        /// <summary>
+        /// Clicks the view accounts link.
+        /// </summary>
+        private void ClickStatementDateDropdown()
+        {
+            this.httpClient.ClickElement(
+                selectorMapping["statementDropdown"]);
+        }
+
+        /// <summary>
+        /// Clicks the view accounts link.
+        /// </summary>
+        private void ChooseStatementDate(int dataValue)
+        {
+            this.httpClient.ClickElement(string.Format(
+                selectorMapping["statementDate"],
+                dataValue));
+        }
+
+        /// <summary>
+        /// Clicks the view accounts link.
+        /// </summary>
+        private void ClickView()
+        {
+            this.httpClient.ClickElement(
+                selectorMapping["selectDate"]);
         }
 
         /// <summary>
@@ -318,7 +490,7 @@ namespace Craswell.WebRepositories.Tangerine
 //                href,
 //                selectorMapping["viewAccountSummaryLink"]);
 
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 accountLinkSelector,
                 selectorMapping["accountTransactionDetail"]);
         }
@@ -328,11 +500,11 @@ namespace Craswell.WebRepositories.Tangerine
         /// </summary>
         private void GoToStatements()
         {
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["displayMyDocuments"],
                 selectorMapping["statements"]);
 
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["statements"],
                 selectorMapping["statementLinks"]);
         }
@@ -342,11 +514,52 @@ namespace Craswell.WebRepositories.Tangerine
         /// </summary>
         private void Logout()
         {
-            this.client.ClickElementAndWaitForSelector(
+            this.httpClient.ClickElementAndWaitForSelector(
                 selectorMapping["logoutLink"],
                 selectorMapping["loginLink"]);
 
             this.isLoggedIn = false;
+        }
+
+        /// <summary>
+        /// Logs a list of strings to the logger.
+        /// </summary>
+        /// <param name="description">A description of the listed items.</param>
+        /// <param name="listOfStrings">Logs the list of strings to the logger.</param>
+        private void LogList(string description, IList<string> listOfStrings)
+        {
+            this.logger.DebugFormat("Logging {0}", description);
+
+            foreach(string stringInstance in listOfStrings)
+            {
+                this.logger.Debug(stringInstance);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private IDictionary<DateTime, int> BuildStatementDateMapping()
+        {
+            Dictionary<DateTime, int> statementDates = new Dictionary<DateTime, int>();
+
+            var statementDateMapping = this.httpClient
+                .EnumerateSelect(selectorMapping["statementDateSelector"], "data-value");
+
+            foreach(string date in statementDateMapping.Keys)
+            {
+                DateTime parsedDate;
+                int parsedValue;
+
+                if (DateTime.TryParse(date, out parsedDate)
+                    && int.TryParse(statementDateMapping[date], out parsedValue))
+                {
+                    statementDates.Add(parsedDate, parsedValue);
+                }
+            }
+
+            return statementDates;
         }
     }
 }

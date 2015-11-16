@@ -165,6 +165,7 @@ namespace Craswell.WebRepositories
                             TangerineObjectFactory objectFactory = new TangerineObjectFactory();
 
                             TangerineClient client = new TangerineClient(
+                                tangerineLogger,
                                 httpClient,
                                 config,
                                 objectFactory);

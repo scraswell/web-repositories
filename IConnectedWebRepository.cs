@@ -17,9 +17,17 @@ namespace Craswell.WebRepositories
         IList<IAccount> GetAccounts();
 
         /// <summary>
-        /// Gets the statement.
+        /// Gets a statement for an account.
         /// </summary>
-        void GetStatement();
+        /// <param name="account">The account.</param>
+        /// <param name="year">The year.</param>
+        /// <param name="month">The month.</param>
+        void GetStatement(IAccount account, int year, int month);
+
+        /// <summary>
+        /// Gets all statement for an account.
+        /// </summary>
+        void GetAllStatements();
     }
 }
 

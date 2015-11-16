@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -46,6 +46,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tangerine\TangerineConfiguration.cs" />
     <Compile Include="Tangerine\TangerineRepository.cs" />
+    <Compile Include="Tangerine\TangerineStatement.cs" />
     <Compile Include="WebRepositoryFactory.cs" />
     <Compile Include="Tangerine\TangerineClient.cs" />
     <Compile Include="Tangerine\TangerineAccount.cs" />
@@ -54,9 +55,7 @@
     <Compile Include="IConnectedWebRepository.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <Folder Include="Tangerine\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\web-scraping\Craswell.WebScraping.csproj">
       <Project>{EE92A653-52DF-432F-94F9-AD5AC917825E}</Project>

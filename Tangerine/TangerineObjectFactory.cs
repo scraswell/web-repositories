@@ -13,6 +13,50 @@ namespace Craswell.WebRepositories.Tangerine
     public class TangerineObjectFactory
     {
         /// <summary>
+        /// Creates a statement from collected information.
+        /// </summary>
+        /// <param name="statementAccountInformation">The statement account information.</param>
+        /// <param name="statementDateInformation">The statement date information.</param>
+        /// <returns>The statement information.</returns>
+        public TangerineStatement BuildStatement(
+            string statementDateInformation,
+            string statementAccountInformation)
+        {
+            string[] statementInfo = statementDateInformation
+                .Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            string date = statementInfo[0]
+                .Split(new string[] { " to " }, StringSplitOptions.RemoveEmptyEntries)
+                .Last()
+                .Trim();
+
+            string clientNumber = statementInfo[1]
+                .Split(new string[] { "#:" }, StringSplitOptions.RemoveEmptyEntries)
+                .Last()
+                .Trim();
+
+            string[] accountInfo = statementAccountInformation
+                .Split();
+
+            string accountNumber = accountInfo
+                .Last()
+                .Trim();
+
+            string fileName = string.Format(
+                "{0}.pdf",
+                Guid.NewGuid());
+
+            DateTime statementTimestamp = DateTime.Parse(date);
+
+            return new TangerineStatement()
+            {
+                Timestamp = DateTime.Parse(date),
+                AccountNumber = accountNumber,
+                FileName = fileName
+            };
+        }
+
+        /// <summary>
         /// Creates accounts from the gathered account data.
         /// </summary>
         /// <returns>A list of accounts.</returns>

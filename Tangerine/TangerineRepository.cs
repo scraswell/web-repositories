@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using Craswell.Automation.DataAccess;
+using NHibernate;
 
 namespace Craswell.WebRepositories.Tangerine
 {
@@ -14,6 +15,11 @@ namespace Craswell.WebRepositories.Tangerine
         /// The type.
         /// </summary>
         private const WebRepositoryType type = WebRepositoryType.Tangerine;
+
+        /// <summary>
+        /// The data access layer.
+        /// </summary>
+        private DataAccessLayer dal = new DataAccessLayer();
 
         /// <summary>
         /// The tangerine client.
@@ -115,9 +121,17 @@ namespace Craswell.WebRepositories.Tangerine
         /// <summary>
         /// Gets the statement.
         /// </summary>
-        public void GetStatement()
+        public void GetStatement(IAccount account, int year, int month)
         {
-            this.tangerineClient.GetStatement();
+            this.tangerineClient.GetStatement(account, year, month);
+        }
+
+        /// <summary>
+        /// Gets the statement.
+        /// </summary>
+        public void GetAllStatements()
+        {
+            this.tangerineClient.GetAllStatements();
         }
         #endregion
 
